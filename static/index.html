@@ -1861,17 +1861,17 @@
                         
                         <div class="bg-white/10 rounded-xl p-3 mb-4 border border-white/5">
                             <p class="text-[10px] uppercase opacity-60 mb-0.5">Población Total</p>
-                            <p class="text-2xl font-black text-[#F6C453]">${p.POB1.toLocaleString()}</p>
+                            <p class="text-2xl font-black text-[#F6C453]">${(p.POB1 || 0).toLocaleString()}</p>
                         </div>
 
                         <ul class="text-[12px] space-y-2 mb-4">
                             <li class="flex justify-between items-center text-blue-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div> Hombres</span> 
-                                <b class="text-white">${p.POB84.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB84 || 0).toLocaleString()}</b>
                             </li>
                             <li class="flex justify-between items-center text-pink-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#F472B6]"></div> Mujeres</span> 
-                                <b class="text-white">${p.POB42.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB42 || 0).toLocaleString()}</b>
                             </li>
                         </ul>
                         <div class="relative h-44 w-full">
@@ -1937,17 +1937,17 @@
                         
                         <div class="bg-white/10 rounded-xl p-3 mb-4 border border-white/5">
                             <p class="text-[10px] uppercase opacity-60 mb-0.5">Población Total</p>
-                            <p class="text-2xl font-black text-[#F6C453]">${p.POB1.toLocaleString()}</p>
+                            <p class="text-2xl font-black text-[#F6C453]">${(p.POB1 || 0).toLocaleString()}</p>
                         </div>
 
                         <ul class="text-[12px] space-y-2 mb-4">
                             <li class="flex justify-between items-center text-blue-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div> Hombres</span> 
-                                <b class="text-white">${p.POB84.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB84 || 0).toLocaleString()}</b>
                             </li>
                             <li class="flex justify-between items-center text-pink-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#F472B6]"></div> Mujeres</span> 
-                                <b class="text-white">${p.POB42.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB42 || 0).toLocaleString()}</b>
                             </li>
                         </ul>
                         <div class="relative h-44 w-full">
@@ -2004,17 +2004,17 @@
                         
                         <div class="bg-white/10 rounded-xl p-3 mb-4 border border-white/5">
                             <p class="text-[10px] uppercase opacity-60 mb-0.5">Población Total</p>
-                            <p class="text-2xl font-black text-[#F6C453]">${p.POB1.toLocaleString()}</p>
+                            <p class="text-2xl font-black text-[#F6C453]">${(p.POB1 || 0).toLocaleString()}</p>
                         </div>
 
                         <ul class="text-[12px] space-y-2 mb-4">
                             <li class="flex justify-between items-center text-blue-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div> Hombres</span> 
-                                <b class="text-white">${p.POB84.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB84 || 0).toLocaleString()}</b>
                             </li>
                             <li class="flex justify-between items-center text-pink-300">
                                 <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#F472B6]"></div> Mujeres</span> 
-                                <b class="text-white">${p.POB42.toLocaleString()}</b>
+                                <b class="text-white">${(p.POB42 || 0).toLocaleString()}</b>
                             </li>
                         </ul>
                         <div class="relative h-44 w-full">
@@ -2698,11 +2698,12 @@
             }
         }
 
-        document.getElementById('auth-form').onsubmit = handleAuth;
-
-        // Carga inicial y actualización de UI
-        updateAuthUI();
-        loadCustomPointsFromServer();
+        window.onload = function () {
+            const authForm = document.getElementById('auth-form');
+            if (authForm) authForm.onsubmit = handleAuth;
+            updateAuthUI();
+            loadCustomPointsFromServer();
+        };
     </script>
 
     <!-- Modal de Login / Registro Premium -->
