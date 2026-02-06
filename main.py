@@ -107,7 +107,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        return username # Retorna el username
+            
+        # Buscar usuario en BD para obtener su rol actualizado
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user is None:
+            raise credentials_exception
+            
+        return dict(user) 
     except JWTError:
         raise credentials_exception
 
@@ -124,7 +136,7 @@ async def get_points():
     return [dict(row) for row in rows]
 
 @app.post("/api/v1/points")
-async def save_point(point: Point, current_user: str = Depends(get_current_user)):
+async def save_point(point: Point, current_user: dict = Depends(get_current_user)):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -140,7 +152,11 @@ async def save_point(point: Point, current_user: str = Depends(get_current_user)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/v1/points/{point_id}")
-async def delete_point(point_id: int, current_user: str = Depends(get_current_user)):
+async def delete_point(point_id: int, current_user: dict = Depends(get_current_user)):
+    # Solo el admin puede borrar
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar puntos. Solo el administrador puede realizar esta acción.")
+        
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('DELETE FROM points WHERE id = ?', (point_id,))
