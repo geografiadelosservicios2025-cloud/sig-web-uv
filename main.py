@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
@@ -30,7 +30,8 @@ DB_PATH = "sig_database.db"
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('DROP TABLE IF EXISTS users') # Recreamos para el nuevo esquema premium
+    # cursor.execute('DROP TABLE IF EXISTS users') # COMENTADO PARA PRODUCCIÓN: No borrar usuarios al reiniciar
+    # cursor.execute('DROP TABLE IF EXISTS points') # Comentado para no perder datos
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS points (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,9 +42,16 @@ def init_db():
             address TEXT,
             lat REAL NOT NULL,
             lng REAL NOT NULL,
+            image_url TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Intentar agregar columna image_url si no existe (Migración simple)
+    try:
+        cursor.execute('ALTER TABLE points ADD COLUMN image_url TEXT')
+    except:
+        pass # Ya existe
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,13 +78,14 @@ init_db()
 
 # --- MODELOS DE DATOS ---
 class Point(BaseModel):
-    name: str
+    name: str = Field(..., max_length=100)
     category: str
     subcategory: Optional[str] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=500)
     address: Optional[str] = None
     lat: float
     lng: float
+    image_url: Optional[str] = None
 
 class UserCreate(BaseModel):
     username: str
@@ -141,9 +150,9 @@ async def save_point(point: Point, current_user: dict = Depends(get_current_user
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO points (name, category, subcategory, description, address, lat, lng)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (point.name, point.category, point.subcategory, point.description, point.address, point.lat, point.lng))
+            INSERT INTO points (name, category, subcategory, description, address, lat, lng, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (point.name, point.category, point.subcategory, point.description, point.address, point.lat, point.lng, point.image_url))
         conn.commit()
         point_id = cursor.lastrowid
         conn.close()
@@ -279,6 +288,9 @@ async def obtener_rutas():
     return {"status": "success", "count": len(files), "files": files}
 
 # Montamos la carpeta static
+# Inicializamos la BD al arrancar
+init_db()
+
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":

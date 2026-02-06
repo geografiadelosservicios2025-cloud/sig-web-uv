@@ -810,6 +810,12 @@
                     <span>Marcar Puntos Personalizados</span>
                 </button>
 
+                <button id="admin-panel-btn" class="marker-mode-btn w-full mb-2 hidden bg-[#1e3c72] hover:bg-[#3b82f6]"
+                    onclick="openAdminTable()">
+                    <i class="fas fa-cog"></i>
+                    <span>Gestión de Datos (Admin)</span>
+                </button>
+
                 <div class="glass-panel">
                     <h2 class="font-semibold mb-2">Buscar municipio</h2>
                     <div style="position: relative;">
@@ -823,6 +829,16 @@
                             title="Limpiar búsqueda">
                             ✕
                         </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <h2 class="font-semibold mb-2">Buscador de Puntos</h2>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs"></i>
+                        <input type="text" id="point-search-input" oninput="searchCustomPoints()"
+                            placeholder="Filtrar tus puntos..."
+                            class="w-full p-2 pl-8 rounded-lg text-xs focus:ring-2 focus:ring-[#F6C453] outline-none bg-white/10 border border-white/20 text-white" />
                     </div>
                 </div>
 
@@ -902,9 +918,17 @@
 
             <div class="form-group">
                 <label for="point-description">
-                    <i class="fas fa-align-left"></i> Descripción
+                    <i class="fas fa-align-left"></i> Descripción (máx 500 car.)
                 </label>
-                <textarea id="point-description" placeholder="Agrega detalles sobre este punto..."></textarea>
+                <textarea id="point-description" maxlength="500"
+                    placeholder="Describe brevemente este lugar..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="point-image">
+                    <i class="fas fa-image"></i> URL de Imagen (opcional)
+                </label>
+                <input type="url" id="point-image" placeholder="https://ejemplo.com/foto.jpg" />
             </div>
 
             <div class="form-group">
@@ -2152,7 +2176,9 @@
 
         async function deletePointFromServer(pointId) {
             try {
-                const response = await fetchWithAuth(`/api/v1/points/${pointId}`, {
+                // Si pointId es un objeto (evento), extraer el id real
+                const id = (typeof pointId === 'object') ? pointId.id : pointId;
+                const response = await fetchWithAuth(`/api/v1/points/${id}`, {
                     method: 'DELETE'
                 });
                 return response.ok;
@@ -2207,6 +2233,7 @@
                 updateSubcategories(existingPoint.subcategory || '');
                 document.getElementById('point-description').value = existingPoint.description || '';
                 document.getElementById('point-address').value = existingPoint.address || '';
+                document.getElementById('point-image').value = existingPoint.image_url || '';
                 document.getElementById('delete-button-container').style.display = 'block';
                 panel.querySelector('h2').innerHTML = '<i class="fas fa-edit"></i> Editar Punto';
             } else {
@@ -2236,7 +2263,8 @@
                 description: document.getElementById('point-description').value,
                 address: document.getElementById('point-address').value,
                 lat: parseFloat(document.getElementById('point-lat').value),
-                lng: parseFloat(document.getElementById('point-lng').value)
+                lng: parseFloat(document.getElementById('point-lng').value),
+                image_url: document.getElementById('point-image').value
             };
 
             const success = await savePointToServer(pointData);
@@ -2249,9 +2277,9 @@
             }
         }
 
-        function renderCustomPoints() {
+        function renderCustomPoints(pointsToRender = customPoints) {
             customPointsLayer.clearLayers();
-            customPoints.forEach(point => {
+            pointsToRender.forEach(point => {
                 const color = categoryColors[point.category] || '#64748b';
                 const marker = L.marker([point.lat, point.lng], {
                     icon: L.divIcon({
@@ -2268,6 +2296,7 @@
                 container.innerHTML = `
                     <h3 style="color: ${color}; font-weight: bold; margin-bottom: 8px; font-size: 15px;">${point.name}</h3>
                     <div style="font-size: 12px; color: rgba(255,255,255,0.9);">
+                        ${point.image_url ? `<img src="${point.image_url}" class="w-full h-32 object-cover rounded-lg mb-3 border border-white/20 shadow-lg">` : ''}
                         <p><strong>Categoría:</strong> ${getCategoryLabel(point.category)}</p>
                         ${point.address ? `<p><strong>Dirección:</strong> ${point.address}</p>` : ''}
                         <p style="font-size: 10px; opacity: 0.7;">Lat: ${point.lat.toFixed(6)}, Lng: ${point.lng.toFixed(6)}</p>
@@ -2282,6 +2311,21 @@
                 marker.bindPopup(container);
                 customPointsLayer.addLayer(marker);
             });
+        }
+
+        function searchCustomPoints() {
+            const query = document.getElementById('point-search-input').value.toLowerCase();
+            const filtered = customPoints.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                p.category.toLowerCase().includes(query) ||
+                (p.description && p.description.toLowerCase().includes(query))
+            );
+            renderCustomPoints(filtered);
+
+            // Si solo hay un resultado, hacer zoom automático
+            if (filtered.length === 1 && query.length > 3) {
+                map.setView([filtered[0].lat, filtered[0].lng], 16);
+            }
         }
 
         window.deleteCustomPoint = async function (pointId) {
@@ -2432,6 +2476,15 @@
                     }
                 }
                 if (markerToggle) markerToggle.style.display = 'flex';
+
+                // Mostrar botón de admin si el rol es privilegiado
+                const adminBtn = document.getElementById('admin-panel-btn');
+                const userRole = localStorage.getItem('sig_role');
+                if (adminBtn) {
+                    if (userRole === 'admin') adminBtn.classList.remove('hidden');
+                    else adminBtn.classList.add('hidden');
+                }
+
                 console.log('✅ UI Actualizada: Usuario Autenticado');
             } else {
                 if (loginBtn) loginBtn.classList.remove('hidden');
@@ -2440,8 +2493,90 @@
                     loggedInView.style.display = 'none';
                 }
                 if (markerToggle) markerToggle.style.display = 'none';
+
+                const adminBtn = document.getElementById('admin-panel-btn');
+                if (adminBtn) adminBtn.classList.add('hidden');
+
                 if (markerModeActive) toggleMarkerMode();
                 console.log('ℹ️ UI Actualizada: Modo Público');
+            }
+        }
+
+        // --- FUNCIONES DEL PANEL DE ADMINISTRACIÓN ---
+        function openAdminTable() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            fillAdminTable(customPoints);
+        }
+
+        function closeAdminTable() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        function fillAdminTable(data) {
+            const tbody = document.getElementById('admin-table-body');
+            const count = document.getElementById('admin-count');
+            tbody.innerHTML = '';
+            count.textContent = data.length;
+
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 transition-colors group";
+                tr.innerHTML = `
+                    <td class="p-4 text-white/40 font-mono text-xs">${p.id}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-white">${p.name}</div>
+                        <div class="text-[10px] text-white/40 truncate max-w-[200px]">${p.description || 'Sin descripción'}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-md text-[10px] uppercase font-bold" 
+                              style="background: ${categoryColors[p.category]}20; color: ${categoryColors[p.category]}">
+                            ${getCategoryLabel(p.category)}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <div class="text-xs text-white/80">${p.address || 'Sin dirección'}</div>
+                        <div class="text-[9px] text-white/30">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex gap-2">
+                            <button onclick="zoomToPoint(${p.id})" class="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-all" title="Ver en mapa">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editCustomPoint(${p.id}); closeAdminTable();" class="p-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500 hover:text-[#1e3c72] transition-all" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteCustomPoint(${p.id})" class="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-all" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterAdminTable() {
+            const query = document.getElementById('admin-search').value.toLowerCase();
+            const filtered = customPoints.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                p.category.toLowerCase().includes(query) ||
+                (p.description && p.description.toLowerCase().includes(query)) ||
+                (p.address && p.address.toLowerCase().includes(query))
+            );
+            fillAdminTable(filtered);
+        }
+
+        function zoomToPoint(id) {
+            const p = customPoints.find(p => p.id === id);
+            if (p) {
+                map.setView([p.lat, p.lng], 16);
+                closeAdminTable();
+                // Buscar el marcador en la capa y abrir su popup
+                customPointsLayer.eachLayer(layer => {
+                    if (layer.getLatLng && layer.getLatLng().lat === p.lat && layer.getLatLng().lng === p.lng) {
+                        layer.openPopup();
+                    }
+                });
             }
         }
 
@@ -2635,6 +2770,57 @@
                 class="mt-8 text-xs opacity-40 hover:opacity-100 transition-opacity flex items-center justify-center gap-2 mx-auto">
                 <i class="fas fa-times"></i> Salir sin cambios
             </button>
+        </div>
+    </div>
+
+    <!-- Panel de Administración (Tabla Gestión) -->
+    <div id="admin-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] hidden flex items-center justify-center p-4">
+        <div
+            class="bg-[#1e3c72] w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl border border-white/20 flex flex-col max-h-[90vh]">
+            <div class="p-6 bg-gradient-to-r from-[#1e3c72] to-[#006847] flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-black text-[#F6C453] uppercase tracking-tighter">Panel de Gestión SIG</h2>
+                    <p class="text-xs text-white/60">Administra todos los puntos personalizados en la base de datos</p>
+                </div>
+                <button onclick="closeAdminTable()" class="text-white/60 hover:text-white text-3xl">✕</button>
+            </div>
+
+            <div class="p-4 bg-white/5 border-b border-white/10 flex gap-4 items-center">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/40"></i>
+                    <input type="text" id="admin-search" placeholder="Filtrar por nombre, categoría o descripción..."
+                        class="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-white outline-none focus:ring-2 focus:ring-[#F6C453]"
+                        oninput="filterAdminTable()">
+                </div>
+                <div class="text-xs text-white/60">
+                    Mostrando <span id="admin-count" class="text-[#F6C453] font-bold">0</span> puntos
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-black/20 sticky top-0 z-10">
+                        <tr>
+                            <th class="p-4 font-bold text-[#F6C453] uppercase text-[10px]">ID</th>
+                            <th class="p-4 font-bold text-[#F6C453] uppercase text-[10px]">Punto</th>
+                            <th class="p-4 font-bold text-[#F6C453] uppercase text-[10px]">Categoría</th>
+                            <th class="p-4 font-bold text-[#F6C453] uppercase text-[10px]">Ubicación</th>
+                            <th class="p-4 font-bold text-[#F6C453] uppercase text-[10px]">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-table-body" class="divide-y divide-white/5">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-black/20 text-center">
+                <button onclick="closeAdminTable()"
+                    class="px-8 py-2 bg-[#F6C453] text-[#1e3c72] font-bold rounded-xl hover:bg-white transition-all">
+                    CERRAR PANEL
+                </button>
+            </div>
         </div>
     </div>
 
