@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+sig_database.db
+.vscode/
+.idea/
+static/data/points.json
