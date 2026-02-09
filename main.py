@@ -55,17 +55,28 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:Tekunikaru1
 
 def get_db_conn():
     try:
-        # Aseguramos que la conexión use SSL (requerido por Supabase)
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=extras.RealDictCursor, sslmode='require')
+        # Añadimos un tiempo de espera para que no se congele el servidor si falla
+        conn = psycopg2.connect(
+            DATABASE_URL, 
+            cursor_factory=extras.RealDictCursor, 
+            sslmode='require',
+            connect_timeout=5
+        )
         return conn
     except Exception as e:
-        print(f"Error conectando a la base de datos: {e}")
-        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
+        print(f"Error crítico conectando a la base de datos: {e}")
+        # No lanzamos HTTPException aquí para que el servidor pueda arrancar
+        return None
 
 def init_db():
+    conn = get_db_conn()
+    if not conn:
+        print("AVISO: No se pudo conectar a la base de datos. El sistema funcionará en modo degradado.")
+        return
+    
     try:
-        conn = get_db_conn()
         cursor = conn.cursor()
+        # ... (el resto de las tablas se crearán aquí)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS points (
                 id SERIAL PRIMARY KEY,
