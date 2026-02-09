@@ -66,72 +66,74 @@ def init_db():
     try:
         conn = get_db_conn()
         cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS points (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            category TEXT,
-            subcategory TEXT,
-            description TEXT,
-            address TEXT,
-            lat REAL NOT NULL,
-            lng REAL NOT NULL,
-            image_url TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    # Intentar agregar columnas si la tabla ya existía sin ellas
-    try:
-        cursor.execute('ALTER TABLE points ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP')
-    except:
-        pass # Ya existe o error al agregar
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS points (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT,
+                subcategory TEXT,
+                description TEXT,
+                address TEXT,
+                lat REAL NOT NULL,
+                lng REAL NOT NULL,
+                image_url TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Intentar agregar columnas si la tabla ya existía sin ellas
+        try:
+            cursor.execute('ALTER TABLE points ADD COLUMN timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
+        except:
+            pass # Ya existe o error al agregar
+            
+        # Columna likes si no existe
+        try:
+            cursor.execute('ALTER TABLE points ADD COLUMN likes INTEGER DEFAULT 0')
+        except:
+            pass
+
+        # Columnas de auditoría si no existen
+        try:
+            cursor.execute('ALTER TABLE points ADD COLUMN created_by TEXT')
+            cursor.execute('ALTER TABLE points ADD COLUMN created_by_name TEXT')
+        except:
+            pass
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                point_id INTEGER,
+                user_name TEXT,
+                content TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (point_id) REFERENCES points(id)
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT,
+                email TEXT,
+                university TEXT,
+                role TEXT DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Admin por defecto
+        admin_pass = pwd_context.hash("uv2026")
+        cursor.execute('''
+            INSERT INTO users (username, password, full_name, email, university, role) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (username) DO NOTHING
+        ''', ('admin', admin_pass, 'Administrador SIG', 'admin@uv.mx', 'Universidad Veracruzana', 'admin'))
         
-    # Columna likes si no existe
-    try:
-        cursor.execute('ALTER TABLE points ADD COLUMN likes INTEGER DEFAULT 0')
-    except:
-        pass
-
-    # Columnas de auditoría si no existen
-    try:
-        cursor.execute('ALTER TABLE points ADD COLUMN created_by TEXT')
-        cursor.execute('ALTER TABLE points ADD COLUMN created_by_name TEXT')
-    except:
-        pass
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            point_id INTEGER,
-            user_name TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (point_id) REFERENCES points(id)
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            full_name TEXT,
-            email TEXT,
-            university TEXT,
-            role TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    # Admin por defecto
-    admin_pass = pwd_context.hash("uv2026")
-    cursor.execute('''
-        INSERT INTO users (username, password, full_name, email, university, role) 
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (username) DO NOTHING
-    ''', ('admin', admin_pass, 'Administrador SIG', 'admin@uv.mx', 'Universidad Veracruzana', 'admin'))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error inicializando base de datos: {e}")
 
 init_db()
 
