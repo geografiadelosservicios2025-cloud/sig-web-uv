@@ -26,8 +26,19 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "481357191308-c06t135ahrb8
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="SIG Web")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# --- CONFIGURACIÓN DE CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Permite cualquier origen (GitHub Pages, localhost, etc.)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- CARPETA DE UPLOADS ---
 UPLOAD_DIR = "static/uploads"

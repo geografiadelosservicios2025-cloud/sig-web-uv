@@ -1077,6 +1077,27 @@
     <script>
 
 
+        // Configuración para el despliegue híbrido (GitHub + Render)
+        const API_BASE_URL = 'https://sig-web-uv.onrender.com';
+
+        async function apiFetch(endpoint, options = {}) {
+            const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+            try {
+                return await fetch(url, options);
+            } catch (error) {
+                if (error.message.includes('Failed to fetch')) {
+                    showNotification('El servidor despertando... espera un momento ⏳', 'info');
+                }
+                throw error;
+            }
+        }
+
+        function getFullUrl(path) {
+            if (!path) return '';
+            if (path.startsWith('http')) return path;
+            return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+        }
+
         var map = L.map('map', { zoomControl: false }).setView([19.17, -96.13], 7);
         let currentScale = 'nacional'; // Track current scale
 
@@ -2225,7 +2246,7 @@
 
         async function loadCustomPointsFromServer() {
             try {
-                const response = await fetch('/api/v1/points');
+                const response = await apiFetch('/api/v1/points');
                 customPoints = await response.json();
                 renderCustomPoints();
                 updateSavedPointsList();
@@ -2389,7 +2410,7 @@
                 container.innerHTML = `
                     <h3 style="color: ${color}; font-weight: bold; margin-bottom: 8px; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:4px;">${point.name}</h3>
                     <div style="font-size: 12px; color: rgba(255,255,255,0.9);">
-                        ${point.image_url ? `<img src="${point.image_url}" class="w-full h-32 object-cover rounded-lg mb-3 border border-white/20 shadow-lg cursor-pointer" onclick="window.open('${point.image_url}', '_blank')">` : ''}
+                        ${point.image_url ? `<img src="${getFullUrl(point.image_url)}" class="w-full h-32 object-cover rounded-lg mb-3 border border-white/20 shadow-lg cursor-pointer" onclick="window.open('${getFullUrl(point.image_url)}', '_blank')">` : ''}
                         <p><strong>Categoría:</strong> ${getCategoryLabel(point.category)}</p>
                         ${point.address ? `<p><strong>Dirección:</strong> ${point.address}</p>` : ''}
                         
@@ -2483,7 +2504,7 @@
         async function loadComments(id) {
             const list = document.getElementById(`comments-list-${id}`);
             try {
-                const res = await fetch(`/api/v1/points/${id}/comments`);
+                const res = await apiFetch(`/api/v1/points/${id}/comments`);
                 const data = await res.json();
                 if (data.length === 0) {
                     list.innerHTML = '<p style="opacity:0.4; text-align:center; padding:10px;">Sin comentarios aún.</p>';
@@ -2613,7 +2634,7 @@
                 formData.append('password', password);
 
                 console.log('🚀 Intentando login para:', username);
-                const response = await fetch('/api/v1/auth/login', {
+                const response = await apiFetch('/api/v1/auth/login', {
                     method: 'POST',
                     body: formData
                 });
@@ -2794,7 +2815,7 @@
                     'Authorization': `Bearer ${authToken}`
                 };
             }
-            const response = await fetch(url, options);
+            const response = await apiFetch(url, options);
             if (response.status === 401) {
                 logout();
                 openLoginModal();
@@ -2845,7 +2866,7 @@
 
         async function handleGoogleLogin(response) {
             try {
-                const res = await fetch('/api/v1/auth/google', {
+                const res = await apiFetch('/api/v1/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: response.credential })
@@ -2889,7 +2910,7 @@
 
         async function register(username, password, full_name, email, university) {
             try {
-                const response = await fetch('/api/v1/auth/register', {
+                const response = await apiFetch('/api/v1/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, full_name, email, university })
