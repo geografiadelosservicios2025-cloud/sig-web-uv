@@ -2899,11 +2899,18 @@
             if (typeof google !== 'undefined') {
                 google.accounts.id.initialize({
                     client_id: "481357191308-c06t135ahrb8nnk1vq6nfo0bcqn33cdl.apps.googleusercontent.com",
-                    callback: handleGoogleLogin
+                    callback: handleGoogleLogin,
+                    auto_select: false // Evita que seleccione automáticamente la cuenta activa
                 });
                 google.accounts.id.renderButton(
                     document.getElementById("google-btn"),
-                    { theme: "outline", size: "large", width: "386", text: "continue_with" }
+                    {
+                        theme: "outline",
+                        size: "large",
+                        width: "386",
+                        text: "signin_with", // Cambia el texto a "Iniciar sesión con Google" o similar
+                        shape: "rectangular"
+                    }
                 );
             }
         }
