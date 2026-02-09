@@ -76,7 +76,7 @@ def init_db():
     
     try:
         cursor = conn.cursor()
-        # ... (el resto de las tablas se crearán aquí)
+        # Tabla de Puntos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS points (
                 id SERIAL PRIMARY KEY,
@@ -88,8 +88,6 @@ def init_db():
                 lat REAL NOT NULL,
                 lng REAL NOT NULL,
                 image_url TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 likes INTEGER DEFAULT 0,
                 created_by TEXT,
