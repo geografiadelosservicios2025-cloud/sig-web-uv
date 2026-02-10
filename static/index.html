@@ -2942,7 +2942,8 @@
                     showNotification(`¡Bienvenido, ${currentUser}! (Google)`, 'success');
                     loadCustomPointsFromServer();
                 } else {
-                    showNotification('Error con el inicio de Google', 'error');
+                    const errorData = await res.json();
+                    showNotification(errorData.detail || 'Tu cuenta debe ser @uv.mx o @estudiantes.uv.mx', 'error');
                 }
             } catch (e) {
                 showNotification('Error de conexión con Google', 'error');
@@ -2963,8 +2964,9 @@
                         theme: "outline",
                         size: "large",
                         width: "386",
-                        text: "signin_with", // Cambia el texto a "Iniciar sesión con Google" o similar
-                        shape: "rectangular"
+                        text: "continue_with",
+                        shape: "rectangular",
+                        locale: "es"
                     }
                 );
             }
