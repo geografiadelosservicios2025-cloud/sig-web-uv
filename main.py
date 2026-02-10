@@ -329,8 +329,8 @@ async def delete_point(point_id: int, current_user: dict = Depends(get_current_u
     cursor.execute('DELETE FROM points WHERE id = %s', (point_id,))
     conn.commit()
     cursor.close()
-        conn.close()
-        return {"status": "success"}
+    conn.close()
+    return {"status": "success"}
 
 # --- RUTAS DE AUTENTICACIÓN ---
 
