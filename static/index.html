@@ -2645,22 +2645,32 @@
 
                     // Ahora guardamos el nombre completo si existe
                     currentUser = (data.user && data.user.full_name) ? data.user.full_name : username;
+                    const role = (data.user && data.user.role) ? data.user.role : 'user';
 
                     localStorage.setItem('sig_token', authToken);
                     localStorage.setItem('sig_user', currentUser);
-                    localStorage.setItem('sig_role', data.user.role || 'user');
+                    localStorage.setItem('sig_role', role);
 
-                    updateAuthUI();
-                    closeLoginModal();
-                    showNotification(`¡Hola, ${currentUser}! Bienvenido al SIG.`, 'success');
-                    loadCustomPointsFromServer();
+                    console.log('✅ Login exitoso:', currentUser);
+
+                    try {
+                        updateAuthUI();
+                        closeLoginModal();
+                        showNotification(`¡Hola, ${currentUser}! Bienvenido al SIG.`, 'success');
+                        loadCustomPointsFromServer();
+                    } catch (err) {
+                        console.error('⚠️ Error actualizando UI:', err);
+                        // Fallback: cerrar modal al menos
+                        closeLoginModal();
+                        showNotification('Sesión iniciada (recarga sugerida)', 'info');
+                    }
                 } else {
                     const error = await response.json();
                     showNotification(error.detail || 'Credenciales incorrectas', 'error');
                 }
             } catch (e) {
                 console.error('❌ Error en login:', e);
-                showNotification('Error de conexión', 'error');
+                showNotification('Error de conexión con el servidor', 'error');
             }
         }
 
@@ -2676,56 +2686,63 @@
         }
 
         function updateAuthUI() {
-            const loginBtn = document.getElementById('login-btn');
-            const loggedInView = document.getElementById('user-logged-in');
-            const usernameDisp = document.getElementById('username-display');
-            const markerToggle = document.getElementById('marker-mode-toggle');
+            try {
+                const loginBtn = document.getElementById('login-btn');
+                const loggedInView = document.getElementById('user-logged-in');
+                const markerToggle = document.getElementById('marker-mode-toggle');
 
-            if (authToken) {
-                if (loginBtn) loginBtn.classList.add('hidden');
-                if (loggedInView) {
-                    loggedInView.classList.remove('hidden');
-                    loggedInView.style.display = 'flex';
+                if (authToken) {
+                    if (loginBtn) loginBtn.classList.add('hidden');
+                    if (loggedInView) {
+                        loggedInView.classList.remove('hidden');
+                        loggedInView.style.display = 'flex';
 
-                    const pic = localStorage.getItem('sig_picture');
-                    if (pic) {
-                        loggedInView.innerHTML = `
-                            <img src="${pic}" class="h-8 w-8 rounded-full border-2 border-[#F6C453] shadow-sm">
-                            <span id="username-display" class="text-[10px] md:text-xs font-bold text-[#F6C453]">${currentUser}</span>
-                            <button onclick="logout()" class="text-white hover:text-red-400 text-[10px] md:text-xs underline p-1">Salir</button>
-                        `;
-                    } else {
-                        loggedInView.innerHTML = `
-                            <i class="fas fa-user-circle text-[#F6C453] text-lg"></i>
-                            <span id="username-display" class="text-[10px] md:text-xs font-bold text-[#F6C453]">${currentUser}</span>
-                            <button onclick="logout()" class="text-white hover:text-red-400 text-[10px] md:text-xs underline p-1">Salir</button>
-                        `;
+                        const pic = localStorage.getItem('sig_picture');
+                        const displayName = currentUser || localStorage.getItem('sig_user') || 'Usuario';
+
+                        if (pic) {
+                            loggedInView.innerHTML = `
+                                <img src="${pic}" class="h-8 w-8 rounded-full border-2 border-[#F6C453] shadow-sm">
+                                <span class="text-[10px] md:text-xs font-bold text-[#F6C453]">${displayName}</span>
+                                <button onclick="logout()" class="text-white hover:text-red-400 text-[10px] md:text-xs underline p-1">Salir</button>
+                            `;
+                        } else {
+                            loggedInView.innerHTML = `
+                                <i class="fas fa-user-circle text-[#F6C453] text-lg"></i>
+                                <span class="text-[10px] md:text-xs font-bold text-[#F6C453]">${displayName}</span>
+                                <button onclick="logout()" class="text-white hover:text-red-400 text-[10px] md:text-xs underline p-1">Salir</button>
+                            `;
+                        }
                     }
+                    if (markerToggle) markerToggle.style.display = 'flex';
+
+                    // Mostrar botón de admin si el rol es privilegiado
+                    const adminBtn = document.getElementById('admin-panel-btn');
+                    const userRole = localStorage.getItem('sig_role');
+                    if (adminBtn) {
+                        if (userRole === 'admin') adminBtn.classList.remove('hidden');
+                        else adminBtn.classList.add('hidden');
+                    }
+
+                    console.log('✅ UI Actualizada: Usuario Autenticado');
+                } else {
+                    if (loginBtn) loginBtn.classList.remove('hidden');
+                    if (loggedInView) {
+                        loggedInView.classList.add('hidden');
+                        loggedInView.style.display = 'none';
+                    }
+                    if (markerToggle) markerToggle.style.display = 'none';
+
+                    const adminBtn = document.getElementById('admin-panel-btn');
+                    if (adminBtn) adminBtn.classList.add('hidden');
+
+                    if (typeof markerModeActive !== 'undefined' && markerModeActive && typeof toggleMarkerMode === 'function') {
+                        toggleMarkerMode();
+                    }
+                    console.log('ℹ️ UI Actualizada: Modo Público');
                 }
-                if (markerToggle) markerToggle.style.display = 'flex';
-
-                // Mostrar botón de admin si el rol es privilegiado
-                const adminBtn = document.getElementById('admin-panel-btn');
-                const userRole = localStorage.getItem('sig_role');
-                if (adminBtn) {
-                    if (userRole === 'admin') adminBtn.classList.remove('hidden');
-                    else adminBtn.classList.add('hidden');
-                }
-
-                console.log('✅ UI Actualizada: Usuario Autenticado');
-            } else {
-                if (loginBtn) loginBtn.classList.remove('hidden');
-                if (loggedInView) {
-                    loggedInView.classList.add('hidden');
-                    loggedInView.style.display = 'none';
-                }
-                if (markerToggle) markerToggle.style.display = 'none';
-
-                const adminBtn = document.getElementById('admin-panel-btn');
-                if (adminBtn) adminBtn.classList.add('hidden');
-
-                if (markerModeActive) toggleMarkerMode();
-                console.log('ℹ️ UI Actualizada: Modo Público');
+            } catch (err) {
+                console.error('❌ Error crítico en updateAuthUI:', err);
             }
         }
 
