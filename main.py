@@ -329,14 +329,12 @@ async def delete_point(point_id: int, current_user: dict = Depends(get_current_u
     cursor.execute('DELETE FROM points WHERE id = %s', (point_id,))
     conn.commit()
     cursor.close()
-    conn.close()
-    return {"status": "success"}
+        conn.close()
+        return {"status": "success"}
 
 # --- RUTAS DE AUTENTICACIÓN ---
 
-def is_uv_email(email: str) -> bool:
-    email = email.lower().strip()
-    return email.endswith("@uv.mx") or email.endswith("@estudiantes.uv.mx")
+# Función de validación de correo eliminada para permitir acceso general (Gmail, etc.)
 
 @app.post("/api/v1/auth/register")
 async def register(user: UserCreate):
