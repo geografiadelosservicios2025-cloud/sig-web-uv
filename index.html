@@ -1508,6 +1508,14 @@
         }
 
         function showMunicipalities() {
+            if (currentScale === 'municipios') {
+                currentScale = null;
+                setActiveBtn(null);
+                clearAll();
+                document.getElementById('map-legend').innerHTML = '';
+                return;
+            }
+
             currentScale = 'municipios';
             setActiveBtn('btn-municipios');
             clearAll();
@@ -1644,6 +1652,16 @@
         }
 
         function showUVRegions() {
+            if (currentScale === 'regiones_uv') {
+                currentScale = null;
+                setActiveBtn(null);
+                clearAll();
+                document.getElementById('map-legend').innerHTML = '';
+                const menu = document.getElementById('uv-menu-container');
+                if (menu) menu.classList.add('hidden');
+                return;
+            }
+
             currentScale = 'regiones_uv';
             // updateServicePanelVisibility(); 
             setActiveBtn('btn-regiones-uv');
@@ -1758,6 +1776,14 @@
     <script>
 
         function showState() {
+            if (currentScale === 'estatal') {
+                currentScale = null;
+                setActiveBtn(null);
+                clearAll();
+                document.getElementById('map-legend').innerHTML = '';
+                return;
+            }
+
             currentScale = 'estatal';
             // updateServicePanelVisibility(); // Eliminado
             setActiveBtn('btn-estatal');
@@ -1787,6 +1813,14 @@
 
 
         function showNational() {
+            if (currentScale === 'nacional') {
+                currentScale = null;
+                setActiveBtn(null);
+                clearAll();
+                document.getElementById('map-legend').innerHTML = '';
+                return;
+            }
+
             currentScale = 'nacional';
             // updateServicePanelVisibility(); // Eliminado
             setActiveBtn('btn-nacional');
