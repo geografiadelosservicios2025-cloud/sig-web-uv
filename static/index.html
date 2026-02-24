@@ -2569,7 +2569,7 @@
                         </div>
 
                         <div style="display: flex; gap: 8px; margin-top: 12px;">
-                            ${(authToken && (userRole === 'admin' || localStorage.getItem('sig_user') === 'admin')) ? `
+                            ${(authToken && (localStorage.getItem('sig_user') === 'admin' || localStorage.getItem('sig_role') === 'admin')) ? `
                             <button onclick="editCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#F6C453; color:#1e3c72; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Editar</button>
                             <button onclick="window.deleteCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#ef4444; color:white; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Borrar</button>
                             ` : (authToken ? '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Solo el administrador puede editar o borrar</p>' : '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Inicia sesión para interactuar</p>')}
