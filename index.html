@@ -914,7 +914,7 @@
             <div class="flex-[1.5] text-center">
                 <h2
                     class="text-sm md:text-2xl font-black text-[#F6C453] tracking-wider uppercase drop-shadow-md whitespace-nowrap">
-                    Mapa Interactivo
+                    Mapa Interactivo <span class="text-[8px] opacity-40">v5.0</span>
                 </h2>
                 <div class="h-1 w-12 md:w-20 bg-[#F6C453] mx-auto mt-0.5 md:mt-1 rounded-full opacity-80"></div>
             </div>
@@ -1163,7 +1163,9 @@
 
 
         // Configuración para el despliegue híbrido (GitHub + Render)
-        const API_BASE_URL = 'https://sig-web-uv.onrender.com';
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://sig-web-uv.onrender.com';
 
         async function apiFetch(endpoint, options = {}) {
             const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
@@ -2567,10 +2569,23 @@
                         </div>
 
                         <div style="display: flex; gap: 8px; margin-top: 12px;">
-                            ${(authToken && userRole === 'admin') ? `
-                            <button onclick="editCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#F6C453; color:#1e3c72; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Editar</button>
-                            <button onclick="window.deleteCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#ef4444; color:white; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Borrar</button>
-                            ` : (authToken ? '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Solo el administrador puede editar o borrar</p>' : '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Inicia sesión para interactuar</p>')}
+                            ${(() => {
+                        const sUser = String(localStorage.getItem('sig_user') || '').toLowerCase();
+                        const sRole = String(localStorage.getItem('sig_role') || '').toLowerCase();
+                        const isAdm = sUser.includes('admin') || sRole.includes('admin');
+                        console.log('DEBUG ADMIN CHECK:', { sUser, sRole, isAdm, authToken: !!authToken });
+
+                        if (authToken && isAdm) {
+                            return `
+                                        <button onclick="editCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#F6C453; color:#1e3c72; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Editar</button>
+                                        <button onclick="window.deleteCustomPoint(${point.id})" style="flex:1; padding:4px; border-radius:4px; background:#ef4444; color:white; border:none; cursor:pointer; font-weight:600; font-size: 11px;">Borrar</button>
+                                    `;
+                        } else if (authToken) {
+                            return '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Solo el administrador puede editar o borrar</p>';
+                        } else {
+                            return '<p style="font-size:10px; opacity:0.6; text-align:center; width:100%;">Inicia sesión para interactuar</p>';
+                        }
+                    })()}
                         </div>
                     </div>
                 `;
@@ -2637,7 +2652,7 @@
         window.deleteCustomPoint = async function (pointId) {
             const point = customPoints.find(p => String(p.id) === String(pointId));
             if (!point) return;
-            if (await showCustomConfirm(`¿Eliminar "${point.name}" de tu base de datos ? `)) {
+            if (confirm(`¿Eliminar "${point.name}" de tu base de datos?`)) {
                 const success = await deletePointFromServer(pointId);
                 if (success) {
                     showNotification('Punto eliminado del servidor', 'success');
